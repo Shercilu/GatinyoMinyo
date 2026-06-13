@@ -14,14 +14,21 @@
 
 <script type="text/javascript">
 
+//PHASER
+
+//renderizado automático
 var config = {
     type: Phaser.AUTO,
-    width: 3008,
+    width: 800,
     height: 608,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    }, //
     physics: {
-        default: 'arcade',
+        default: 'arcade', // motor de colisiones por cajas
         arcade: {
-            gravity: { y: 300 },
+            gravity: { y: 300 }, //gravedad
             debug: false
         }
     },
@@ -31,6 +38,8 @@ var config = {
         update: update
     }
 };
+
+//variables del juego
 
 var player;
 var adornos;
@@ -50,8 +59,11 @@ var score = 0;
 var gameOver = false;
 var scoreText;
 var tiles;
+
 var game = new Phaser.Game(config);
 
+
+//Precarga
 function preload ()
 {
     this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
@@ -62,14 +74,13 @@ function preload ()
     this.load.audio('punto', 'assets/punto.mp3');
     this.load.spritesheet('bomb', 'assets/bomb.png', { frameWidth: 40, frameHeight: 48 });
     this.load.audio('musicaambiente', 'assets/musica.mp3');
-    this.load.tilemapTiledJSON('map', 'mapagato10mar.json');
+    this.load.tilemapTiledJSON('map', 'mapa1.json');
     this.load.image('tiles', 'assets/texturas/texturas.png');
 }
 
+//Creación
 function create ()
 {
-     // Personaje
-
      //Mapa
     map = this.make.tilemap({ key: 'map', tileWidth: 32, tileHeight: 32 });
 
@@ -82,20 +93,28 @@ function create ()
     adornos = map.createLayer('adornos', tiles, 0, 0 );
     stars = map.createLayer('star', stars, 0, 0);
 
+    //El gatiño :3
     player = this.physics.add.sprite(50, 435, 'dude');
-    this.cameras.main.startFollow(player);
-    this.cameras.main.x=-1420;
+
+    //Cámara
+    this.physics.world.setBounds(0, 0, 3008, 608);
+    this.cameras.main.startFollow(player, true, 0.05, 0.05);
+    this.cameras.main.setBounds(0, 0, 3008, 608);
 
     // colisión de plataformas
     plataformas.setCollision([747,798,787,788,827,826]);
 
+    //Recolección de magikarps
     stars.setTileIndexCallback(881, hitFish, this);
     this.physics.add.overlap(player, stars);
 
-bombs = this.physics.add.group();   
+    //Chocar con el suelo
+    this.physics.add.collider(plataformas, player);
 
-this.physics.add.collider(plataformas, player);
+    //Perros grupo
+    bombs = this.physics.add.group();
 
+    //Creación perros
 var bomb;
 bomb = bombs.create(430, 180, 'bomb');
     bomb.setCollideWorldBounds(true);
@@ -114,14 +133,16 @@ bomb = bombs.create(430, 180, 'bomb');
         repeat: -1
     });
 
+
+
     var bomb2;
-    bomb2 = bombs.create(870, 300, 'bomb');
-    bomb2.setCollideWorldBounds(true);
-    bomb2.setBounce(0.2);  
-    this.physics.add.collider(plataformas, bomb2);
-    this.tweens.add({
+    bomb2 = bombs.create(870, 300, 'bomb'); //Metemos al perro en esa coordenada
+    bomb2.setCollideWorldBounds(true); //Colisión mapa
+    bomb2.setBounce(0.2);  //Rebota al caer
+    this.physics.add.collider(plataformas, bomb2); //colisión plataformas
+    this.tweens.add({ //Animación de movimiento
         targets: bomb2,
-        x: 1000,
+        x: 1000, 
         duration: 1100,
         ease: 'Sine.easeInOut',
         flipX: true,
@@ -131,22 +152,6 @@ bomb = bombs.create(430, 180, 'bomb');
         repeat: -1
     });
     
-    var bomb3;
-    bomb3 = bombs.create(1320, 200, 'bomb');
-    bomb3.setCollideWorldBounds(true);
-    this.physics.add.collider(plataformas, bomb3);
-    bomb3.setBounce(0.2);
-    this.tweens.add({
-        targets: bomb3,
-        x: 1320,
-        duration: 1100,
-        ease: 'Sine.easeInOut',
-        flipX: true,
-        yoyo: true,
-        delay: 10,
-        loop: -1,
-        repeat: -1
-    });   
 
     var bomb4;
     bomb4 = bombs.create(2000, 200, 'bomb');
@@ -225,7 +230,7 @@ bomb = bombs.create(430, 180, 'bomb');
     bomb8.setBounce(0.2);
     this.tweens.add({
         targets: bomb8,
-        x: 2150,
+        x: 2100,
         duration: 1100,
         ease: 'Sine.easeInOut',
         flipX: true,
@@ -254,11 +259,11 @@ bomb = bombs.create(430, 180, 'bomb');
     // musica fondo
     this.sound.play('musicaambiente');
    
-    //  Player physics properties. Give the little guy a slight bounce.
+    //  El gatiño rebota
     player.setBounce(0.2);
     player.setCollideWorldBounds(true);
 
-    //  Our player animations, turning, walking left and walking right.
+    //  Animaciones del gatiño
     this.anims.create({
         key: 'left',
         frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
@@ -279,82 +284,84 @@ bomb = bombs.create(430, 180, 'bomb');
         repeat: -1
     });
 
-    //  Input Events
+    //activar flechas del teclado
     cursors = this.input.keyboard.createCursorKeys();
  
-    //  The score
+    //  Puntuación
     scoreText = this.add.text(16, 16, 'Peces: 0', { fontSize: '32px', fill: '#000' });
+    scoreText.setScrollFactor(0);
 
-    // nose
-
+    
+    //Activar función hitbomb si Gatiño toca perro (perder partida)
     this.physics.add.collider(player, bombs, hitBomb, null, this);
 }
 
-    // personaje
+    
 function update ()
 {
-    if (gameOver)
+    if (gameOver) //si pierdes se para el juego
     {
 
         return;
     }
 
-    if (cursors.left.isDown)
+    if (cursors.left.isDown) // movimiento izq
     {
         player.setVelocityX(-160);
 
         player.anims.play('left', true);
     }
-    else if (cursors.right.isDown)
+    else if (cursors.right.isDown) //movimiento drcha
     {
         player.setVelocityX(160);
 
         player.anims.play('right', true);
     }
-    else
+    else //no pulsar nada
     {
         player.setVelocityX(0);
 
         player.anims.play('turn');
     }
 
-    if (cursors.up.isDown && player.body.blocked.down)
+    if (cursors.up.isDown && player.body.blocked.down) //Saltar
     {
         player.setVelocityY(-330);
         this.sound.play('salto');
     }
-    if (cursors.down.isDown)
+    if (cursors.down.isDown)//Caída rápida
     {
         player.setVelocityY(300);
     }
 }
 
+//Función cuando Gatiño toca magikarsp
 function hitFish (sprite, tile){
-    stars.removeTileAt(tile.x, tile.y);
-    score += 1;
-    this.sound.play('punto');
-    scoreText.setText('Peces: ' + score);
-    if (score == 32)
+    stars.removeTileAt(tile.x, tile.y); //borramos el pez si lo ha tocado
+    score += 1; //sumar punto
+    this.sound.play('punto'); //Suena audio del punto
+    scoreText.setText('Peces: ' + score); //Actualizar marcador
+    if (score == 32) //Si consigues 32 peces ganas :)
     {
         this.sound.play('win');
         alert ('😻¡Has ganado!😻');
-        window.location.reload();
+        window.location.reload();// Reinicia para poder jugar de nuevo
         this.scene.pause;
     }
 }
 
-
+//Función cuando Gatiño toca Perros
 function hitBomb (player, bomb){
-    this.physics.pause();
+    this.physics.pause(); //congelamos el juego
 
-    player.setTint(0xff8500);
+    player.setTint(0xff8500); //Cambio de color de Gatiño (efecto daño)
 
-    player.anims.play('turn');
+    player.anims.play('turn'); //Se queda mirando el Gatiño de frente
 
     gameOver = true;
-    this.sound.play('muerto');
+    this.sound.play('muerto'); //audio de game over
     alert('😿Has perdido ¡Inténtalo de nuevo!😿');
-    window.location.reload();
+    window.location.reload(); //Reinicia la página
 }
 
 
